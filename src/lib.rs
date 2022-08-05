@@ -31,6 +31,7 @@ pub fn copy_files_with_structure<I: AsRef<Path>, O: AsRef<Path>>(
     output: O,
 ) -> Result<()> {
     let path = input.as_ref();
+    std::fs::create_dir_all(&output)?;
     let files = files(&path).unwrap();
     copy_directory_structure(&path, &output).unwrap();
     for file in files {
