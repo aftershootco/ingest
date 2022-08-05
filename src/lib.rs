@@ -45,7 +45,9 @@ pub fn files(path: impl AsRef<Path>) -> Result<HashSet<PathBuf>> {
         .flatten()
         .filter_map(|entry| {
             if entry.file_type().is_file() {
-                Some(entry.path().to_path_buf())
+                let f = entry.path().to_path_buf();
+                println!("{:?}", f);
+                Some(f)
             } else {
                 None
             }
