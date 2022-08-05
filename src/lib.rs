@@ -17,8 +17,8 @@ pub fn copy_with_structure<I: AsRef<Path>, O: AsRef<Path>, R: AsRef<Path>>(
 }
 
 pub fn copy_directory_structure<I: AsRef<Path>, O: AsRef<Path>>(input: I, output: O) -> Result<()> {
-    let input = input.as_ref().canonicalize()?;
-    let output = output.as_ref().canonicalize()?;
+    let input = input.as_ref().canonicalize().unwrap();
+    let output = output.as_ref().canonicalize().unwrap();
     for folder in folders(&input)? {
         let target = output.join(folder.strip_prefix(&input)?);
         std::fs::create_dir_all(target)?;
@@ -31,7 +31,7 @@ pub fn copy_files_with_structure<I: AsRef<Path>, O: AsRef<Path>>(
     output: O,
 ) -> Result<()> {
     let path = input.as_ref();
-    let files = files(&path)?;
+    let files = dbg!(files(&path)?);
     copy_directory_structure(&path, &output)?;
     for file in files {
         copy_with_structure(&path, file, &output)?;
