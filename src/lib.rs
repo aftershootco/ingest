@@ -9,9 +9,9 @@ pub fn copy_with_structure<I: AsRef<Path>, O: AsRef<Path>, R: AsRef<Path>>(
     output: O,
 ) -> Result<u64> {
     // The root is the directory where the input folder is located.
-    let root = root.as_ref().canonicalize()?;
-    let input = input.as_ref().canonicalize()?;
-    let output = output.as_ref().canonicalize()?;
+    let root = root.as_ref().canonicalize().unwrap();
+    let input = input.as_ref().canonicalize().unwrap();
+    let output = output.as_ref().canonicalize().unwrap();
     let target = output.join(input.strip_prefix(root)?);
     Ok(std::fs::copy(input, target)?)
 }
@@ -40,7 +40,7 @@ pub fn copy_files_with_structure<I: AsRef<Path>, O: AsRef<Path>>(
 }
 
 pub fn files(path: impl AsRef<Path>) -> Result<HashSet<PathBuf>> {
-    Ok(walkdir::WalkDir::new(path.as_ref().canonicalize()?)
+    Ok(walkdir::WalkDir::new(path.as_ref().canonicalize().unwrap())
         .into_iter()
         .flatten()
         .filter_map(|entry| {
