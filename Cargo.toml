@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.59"
 fs2 = "0.4.3"
+thiserror = "1.0.32"
 walkdir = "2.3.2"
