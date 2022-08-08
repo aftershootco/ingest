@@ -14,6 +14,7 @@ pub fn main() -> anyhow::Result<()> {
         .with_source([input])
         .with_structure(ingest::Structure::Rename(rename))
         .with_target(output)
+        .backup("backup")
         .build()?;
     // let mut ingest = builder.build()?;
     ingestor.ingest()?;

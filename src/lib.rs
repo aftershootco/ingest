@@ -24,6 +24,7 @@ pub const LOSSY_EXTENSIONS: [&str; 9] = [
 pub struct IngestorBuilder<'ingest> {
     pub structure: Option<Structure>,
     pub target: Option<PathBuf>,
+    pub backup: Option<PathBuf>,
     pub sources: Option<HashSet<PathBuf>>,
     pub filter: Option<Filter<'ingest>>,
     pub copy_xmp: Option<bool>,
@@ -61,10 +62,10 @@ impl<'ingest> IngestorBuilder<'ingest> {
         self
     }
 
-    // pub fn ignore_hidden(mut self, ignore_hidden: bool) -> Self {
-    //     self.ignore_hidden = Some(ignore_hidden);
-    //     self
-    // }
+    pub fn backup<P: AsRef<Path>>(mut self, backup: P) -> Self {
+        self.backup = Some(backup.as_ref().to_path_buf());
+        self
+    }
 
     pub fn build(self) -> Result<Ingestor<'ingest>> {
         if let Self {
@@ -72,6 +73,7 @@ impl<'ingest> IngestorBuilder<'ingest> {
             target: Some(target),
             sources: Some(sources),
             filter: Some(filter),
+            backup,
             ..
         } = self
         {
@@ -80,9 +82,9 @@ impl<'ingest> IngestorBuilder<'ingest> {
                 target,
                 sources,
                 filter,
+                backup,
                 copy_xmp: self.copy_xmp.unwrap_or(true),
                 copy_jpg: self.copy_jpg.unwrap_or(true),
-                // ignore_hidden: self.ignore_hidden.unwrap_or(true),
                 ..Default::default()
             })
         } else {
@@ -102,6 +104,7 @@ impl<'ingest> IngestorBuilder<'ingest> {
 pub struct Ingestor<'ingest> {
     pub structure: Structure,
     pub target: PathBuf,
+    pub backup: Option<PathBuf>,
     pub sources: HashSet<PathBuf>,
     pub filter: Filter<'ingest>,
     pub copy_xmp: bool,
@@ -282,7 +285,9 @@ impl<'ingest> Ingestor<'ingest> {
                 })?;
         }
 
-        let jpegs: Vec<PathBuf> = dbg!(self.__jpegs.drain().collect());
+        let jpegs: Vec<PathBuf> = self.__jpegs.drain().collect();
+        let __copy_xmp = self.copy_xmp;
+        let __copy_jpg = self.copy_jpg;
         for jpeg in jpegs {
             self.copy_xmp = false;
             self.copy_jpg = false;
@@ -292,6 +297,14 @@ impl<'ingest> Ingestor<'ingest> {
                 }
                 _ => (),
             };
+        }
+
+        if let Some(backup) = &self.backup {
+            self.copy_xmp = __copy_xmp;
+            self.copy_jpg = __copy_jpg;
+            self.target = backup.to_owned();
+            self.backup = None;
+            self.ingest()?;
         }
 
         Ok(0)
