@@ -1,6 +1,7 @@
 use ingest::Rename;
 
-pub fn main() -> anyhow::Result<()> {
+#[tokio::main]
+pub async fn main() -> anyhow::Result<()> {
     let mut args = std::env::args().skip(1).take(2);
     let input = args.next().ok_or_else(|| anyhow::anyhow!("no input"))?;
     let output = args.next().ok_or_else(|| anyhow::anyhow!("no output"))?;
@@ -17,6 +18,6 @@ pub fn main() -> anyhow::Result<()> {
         .backup("backup")
         .build()?;
     // let mut ingest = builder.build()?;
-    ingestor.ingest()?;
+    ingestor.ingest().await?;
     Ok(())
 }
