@@ -26,6 +26,7 @@ pub enum ErrorKind {
 }
 
 impl Error {
+    #[track_caller]
     pub fn custom_error(msg: impl std::fmt::Display) -> Self {
         Self {
             location: *Location::caller(),

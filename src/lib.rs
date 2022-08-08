@@ -1,4 +1,5 @@
 mod errors;
+mod traits;
 use errors::Error;
 use errors::Result;
 use std::borrow::Cow;
@@ -6,6 +7,8 @@ use std::collections::HashSet;
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
+use traits::IsHidden;
+use traits::IsJpeg;
 use walkdir::WalkDir;
 
 pub const RAW_EXTENSIONS: [&str; 37] = [
@@ -25,6 +28,7 @@ pub struct IngestorBuilder<'ingest> {
     pub filter: Option<Filter<'ingest>>,
     pub copy_xmp: Option<bool>,
     pub copy_jpg: Option<bool>,
+    pub ignore_hidden: Option<bool>,
 }
 
 impl<'ingest> IngestorBuilder<'ingest> {
@@ -57,14 +61,18 @@ impl<'ingest> IngestorBuilder<'ingest> {
         self
     }
 
+    // pub fn ignore_hidden(mut self, ignore_hidden: bool) -> Self {
+    //     self.ignore_hidden = Some(ignore_hidden);
+    //     self
+    // }
+
     pub fn build(self) -> Result<Ingestor<'ingest>> {
         if let Self {
             structure: Some(structure),
             target: Some(target),
             sources: Some(sources),
             filter: Some(filter),
-            copy_xmp: Some(copy_xmp),
-            copy_jpg: Some(copy_jpg),
+            ..
         } = self
         {
             Ok(Ingestor {
@@ -72,8 +80,10 @@ impl<'ingest> IngestorBuilder<'ingest> {
                 target,
                 sources,
                 filter,
-                copy_xmp,
-                copy_jpg,
+                copy_xmp: self.copy_xmp.unwrap_or(true),
+                copy_jpg: self.copy_jpg.unwrap_or(true),
+                // ignore_hidden: self.ignore_hidden.unwrap_or(true),
+                ..Default::default()
             })
         } else {
             Err(Error::custom_error("Missing required fields"))
@@ -96,6 +106,7 @@ pub struct Ingestor<'ingest> {
     pub filter: Filter<'ingest>,
     pub copy_xmp: bool,
     pub copy_jpg: bool,
+    __jpegs: HashSet<PathBuf>,
 }
 
 #[derive(Debug, Clone)]
@@ -103,19 +114,30 @@ pub struct Filter<'filter> {
     pub extensions: Cow<'filter, [&'filter str]>,
     pub min_size: u64,
     pub max_size: u64,
+    pub ignore_hidden: bool,
 }
 
 impl<'filter> Filter<'filter> {
     pub fn matches(&self, path: impl AsRef<Path>) -> Result<bool> {
-        let len = path.as_ref().metadata()?.len();
-        let ext = path.as_ref().extension().and_then(OsStr::to_str);
+        if path.is_hidden() == self.ignore_hidden {
+            return Ok(false);
+        }
+
+        let ext = path
+            .as_ref()
+            .extension()
+            .map(OsStr::to_ascii_lowercase)
+            .and_then(|ext| ext.into_string().ok());
+        let ext = ext.as_deref();
+
+        let size = path.as_ref().metadata()?.len();
         if let Some(ext) = ext {
-            if self.extensions.contains(&ext) && len >= self.min_size && len <= self.max_size {
+            if self.extensions.contains(&ext) && size >= self.min_size && size <= self.max_size {
                 return Ok(true);
             }
         } else if (self.extensions.is_empty() || self.extensions.contains(&""))
-            && len >= self.min_size
-            && len <= self.max_size
+            && size >= self.min_size
+            && size <= self.max_size
         {
             return Ok(true);
         }
@@ -127,6 +149,7 @@ impl<'filter> Filter<'filter> {
             extensions: Cow::Owned(extensions),
             min_size: 0,
             max_size: std::u64::MAX,
+            ignore_hidden: true,
         }
     }
 }
@@ -137,6 +160,7 @@ impl<'filter> Default for Filter<'filter> {
             extensions: Default::default(),
             min_size: 0,
             max_size: std::u64::MAX,
+            ignore_hidden: true,
         }
     }
 }
@@ -220,6 +244,9 @@ impl<'ingest> Ingestor<'ingest> {
     /// Returns the number of files that were ingested.
     pub fn ingest(&mut self) -> Result<u64> {
         fs::create_dir_all(&self.target)?;
+        if self.free_space()? < self.total_size()? {
+            return Err(Error::custom_error("Not enough space"));
+        }
         let mut rename = match self.structure.clone() {
             Structure::Rename(ref rename) => Some(rename.clone()),
             _ => None,
@@ -236,6 +263,15 @@ impl<'ingest> Ingestor<'ingest> {
                         match self.structure {
                             Structure::Retain => self.ingest_file(source, path).ok(),
                             Structure::Rename(_) => {
+                                if path.is_jpeg() {
+                                    let path = path.to_path_buf();
+                                    if self.__jpegs.contains(&path) {
+                                        self.__jpegs.remove(&path);
+                                        return Ok(());
+                                    } else {
+                                        self.__jpegs.insert(path);
+                                    }
+                                };
                                 self.ingest_file_renamed(path, &mut rename).ok()
                             }
                             // Structure::Preserve => self.ingest_file_preserve(path).ok(),
@@ -245,10 +281,24 @@ impl<'ingest> Ingestor<'ingest> {
                     Ok(())
                 })?;
         }
+
+        let jpegs: Vec<PathBuf> = dbg!(self.__jpegs.drain().collect());
+        for jpeg in jpegs {
+            self.copy_xmp = false;
+            self.copy_jpg = false;
+            match self.structure {
+                Structure::Retain => {
+                    self.ingest_file_renamed(jpeg, &mut rename).ok();
+                }
+                _ => (),
+            };
+        }
+
         Ok(0)
     }
 
-    fn ingest_file<P: AsRef<Path>, S: AsRef<Path>>(&self, source: S, path: P) -> Result<()> {
+    /// This copies the files as is
+    fn ingest_file<P: AsRef<Path>, S: AsRef<Path>>(&mut self, source: S, path: P) -> Result<()> {
         let source = source.as_ref();
         // if the source folder is
         // aaa/bbb
@@ -278,6 +328,7 @@ impl<'ingest> Ingestor<'ingest> {
         Ok(())
     }
 
+    /// Since this doesn't retain the structure we need to rename the accompanying jpegs as well
     pub fn ingest_file_renamed<P: AsRef<Path>>(
         &mut self,
         path: P,
@@ -293,6 +344,16 @@ impl<'ingest> Ingestor<'ingest> {
             self.target
                 .canonicalize()?
                 .join(format!("{}.{}", rename.next(&path)?, file_extension));
+        self.ingest_copy(path, target)?;
+        Ok(())
+    }
+
+    pub fn ingest_file_preserve<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
+        let target = self.target.canonicalize()?.join(
+            path.as_ref()
+                .file_name()
+                .ok_or_else(|| Error::custom_error("File name not found"))?,
+        );
         self.ingest_copy(path, target)?;
         Ok(())
     }
@@ -352,7 +413,12 @@ impl<'ingest> Ingestor<'ingest> {
     pub fn builder() -> IngestorBuilder<'ingest> {
         Default::default()
     }
-    pub fn ingest_copy<I: AsRef<Path>, O: AsRef<Path>>(&self, input: I, output: O) -> Result<u64> {
+
+    pub fn ingest_copy<I: AsRef<Path>, O: AsRef<Path>>(
+        &mut self,
+        input: I,
+        output: O,
+    ) -> Result<u64> {
         if self.copy_xmp {
             fs::copy(
                 input.as_ref().with_extension("xmp"),
@@ -360,13 +426,37 @@ impl<'ingest> Ingestor<'ingest> {
             )
             .ok();
         }
-        if self.copy_jpg {
-            fs::copy(
-                input.as_ref().with_extension("jpg"),
-                output.as_ref().with_extension("jpg"),
-            )
-            .ok();
+        if !self.structure.is_retained() && self.copy_jpg {
+            if let Ok(path) = accompanying_jpeg(&input) {
+                if self.__jpegs.contains(&path) {
+                    self.__jpegs.remove(&path);
+                } else {
+                    self.__jpegs.insert(path.clone());
+                }
+                fs::copy(path, output.as_ref().with_extension("jpg")).ok();
+            }
         }
+
         Ok(fs::copy(input, output)?)
+    }
+}
+
+pub fn accompanying_jpeg(path: impl AsRef<Path>) -> Result<PathBuf> {
+    let path = path.as_ref();
+    let extension = path
+        .extension()
+        .map(OsStr::to_ascii_lowercase)
+        .and_then(|ext| ext.into_string().ok())
+        .ok_or_else(|| Error::custom_error("File extension not found"))?;
+
+    if matches!(extension.as_str(), "jpg" | "jpeg") {
+        Err(Error::custom_error(
+            "Jpeg file can't have accompanying jpeg",
+        ))
+    } else {
+        return ["jpg", "jpeg"]
+            .iter()
+            .find_map(|e| path.with_extension(e).canonicalize().ok())
+            .ok_or_else(|| Error::custom_error("No accompanying jpeg found"));
     }
 }
