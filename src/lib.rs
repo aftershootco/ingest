@@ -4,7 +4,7 @@ mod traits;
 mod ingest;
 pub use ingest::*;
 
-use errors::Error;
+pub use errors::Error;
 use errors::Result;
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -25,10 +25,10 @@ pub const LOSSY_EXTENSIONS: [&str; 9] = [
 
 #[derive(Debug, Clone, Default)]
 pub struct IngestorBuilder<'ingest> {
-    pub structure: Option<Structure>,
+    pub structure: Option<Structure<'ingest>>,
     pub target: Option<PathBuf>,
     pub backup: Option<PathBuf>,
-    pub sources: Option<HashSet<PathBuf>>,
+    pub sources: Option<HashSet<&'ingest Path>>,
     pub filter: Option<Filter<'ingest>>,
     pub copy_xmp: Option<bool>,
     pub copy_jpg: Option<bool>,
@@ -36,7 +36,7 @@ pub struct IngestorBuilder<'ingest> {
 }
 
 impl<'ingest> IngestorBuilder<'ingest> {
-    pub fn with_structure(mut self, structure: Structure) -> Self {
+    pub fn with_structure(mut self, structure: Structure<'ingest>) -> Self {
         self.structure = Some(structure);
         self
     }
@@ -45,13 +45,13 @@ impl<'ingest> IngestorBuilder<'ingest> {
         self
     }
     pub fn with_source<
-        P: IntoIterator<Item = PI>,
+        P: IntoIterator<Item = &'ingest PI>,
         PI: AsRef<Path> + std::hash::Hash + std::cmp::Eq + 'ingest,
     >(
         mut self,
         sources: P,
     ) -> Self {
-        self.sources = Some(sources.into_iter().map(|p| p.as_ref().to_owned()).collect());
+        self.sources = Some(sources.into_iter().map(|p| p.as_ref()).collect());
         self
     }
 
@@ -105,10 +105,10 @@ impl<'ingest> IngestorBuilder<'ingest> {
 
 #[derive(Debug, Clone, Default)]
 pub struct Ingestor<'ingest> {
-    pub structure: Structure,
+    pub structure: Structure<'ingest>,
     pub target: PathBuf,
     pub backup: Option<PathBuf>,
-    pub sources: HashSet<PathBuf>,
+    pub sources: HashSet<&'ingest Path>,
     pub filter: Filter<'ingest>,
     pub copy_xmp: bool,
     pub copy_jpg: bool,
@@ -147,9 +147,9 @@ impl<'filter> Default for Filter<'filter> {
 }
 
 #[derive(Debug, Clone, Default)]
-pub enum Structure {
+pub enum Structure<'st> {
     /// Rename the files according to the given pattern.
-    Rename(Rename),
+    Rename(Rename<'st>),
     /// Preserve the names not the folder structure
     Preserve,
     /// Retain the folder structure
@@ -157,7 +157,7 @@ pub enum Structure {
     Retain,
 }
 
-impl Structure {
+impl<'st> Structure<'st> {
     pub fn is_retained(&self) -> bool {
         matches!(self, Structure::Retain)
     }
@@ -176,23 +176,32 @@ pub enum Position {
     Prefix,
     Suffix,
 }
-#[derive(Debug, Clone, Default)]
-pub struct Rename {
-    pub name: Option<String>,
+#[derive(Debug, Clone, Default, Copy)]
+pub struct Rename<'ren> {
+    pub name: Option<&'ren str>,
     pub position: Position,
     pub sequence: i32,
     pub zeroes: u8,
 }
 
-impl Rename {
+impl<'ren> Rename<'ren> {
     pub fn file_stem(&self, path: impl AsRef<Path>) -> Result<String> {
-        let name = self.name.clone().unwrap_or(
+        // let name = self.name.clone().unwrap_or(
+        //     &path
+        //         .as_ref()
+        //         .file_stem()
+        //         .and_then(OsStr::to_str)
+        //         .map(|m| m.to_owned())
+        //         .ok_or_else(|| Error::custom_error("File stem not found"))?,
+        // );
+        let name = if let Some(name) = self.name {
+            name
+        } else {
             path.as_ref()
                 .file_stem()
                 .and_then(OsStr::to_str)
-                .map(|m| m.to_owned())
-                .ok_or_else(|| Error::custom_error("File stem not found"))?,
-        );
+                .ok_or_else(|| Error::custom_error("File stem not found"))?
+        };
         Ok(match self.position {
             Position::Suffix => format!("{}-{:0z$}", name, self.sequence, z = self.zeroes as usize),
             Position::Prefix => format!("{:0z$}-{}", self.sequence, name, z = self.zeroes as usize),

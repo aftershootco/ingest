@@ -12,10 +12,9 @@ pub async fn main() -> anyhow::Result<()> {
         zeroes: 5,
     };
     let mut ingestor = ingest::IngestorBuilder::images()
-        .with_source([input])
+        .with_source([&input])
         .with_structure(ingest::Structure::Rename(rename))
         .with_target(output)
-        .backup("backup")
         .build()?;
     // let mut ingest = builder.build()?;
     ingestor.ingest().await?;

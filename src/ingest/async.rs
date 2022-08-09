@@ -162,7 +162,7 @@ impl<'ingest> Ingestor<'ingest> {
     pub async fn ingest_file_renamed<P: AsRef<Path>>(
         &mut self,
         path: P,
-        rename: &mut Rename,
+        rename: &mut Rename<'ingest>,
     ) -> Result<()> {
         let file_extension = path
             .as_ref()
@@ -276,8 +276,8 @@ impl<'ingest> Ingestor<'ingest> {
     pub async fn map_entry(
         &mut self,
         entry: walkdir::DirEntry,
-        source: &PathBuf,
-        rename: &mut Rename,
+        source: impl AsRef<Path>,
+        rename: &mut Rename<'ingest>,
     ) -> Result<()> {
         let path = entry.path();
         if self.filter.matches(path)? {
