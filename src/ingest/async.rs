@@ -32,6 +32,7 @@ impl<'filter> Filter<'filter> {
 impl<'ingest> Ingestor<'ingest> {
     /// Returns the free space available at the target folder
     pub fn free_space(&self) -> Result<u64> {
+        std::fs::create_dir_all(&self.target)?;
         Ok(fs2::free_space(&self.target)?)
     }
 
@@ -279,6 +280,8 @@ impl<'ingest> Ingestor<'ingest> {
         source: impl AsRef<Path>,
         rename: &mut Rename<'ingest>,
     ) -> Result<()> {
+        self.progress
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let path = entry.path();
         if self.filter.matches(path)? {
             match self.structure {

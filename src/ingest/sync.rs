@@ -30,6 +30,7 @@ impl<'filter> Filter<'filter> {
 impl<'ingest> Ingestor<'ingest> {
     /// Returns the free space available at the target folder
     pub fn free_space(&self) -> Result<u64> {
+        std::fs::create_dir_all(&self.target)?;
         Ok(fs2::free_space(&self.target)?)
     }
 

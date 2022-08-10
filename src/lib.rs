@@ -1,5 +1,6 @@
 mod errors;
 mod traits;
+use std::sync::{atomic::AtomicUsize, Arc};
 
 mod ingest;
 pub use ingest::*;
@@ -33,14 +34,15 @@ pub struct IngestorBuilder<'ingest> {
     pub copy_xmp: Option<bool>,
     pub copy_jpg: Option<bool>,
     pub ignore_hidden: Option<bool>,
+    pub progress: Option<Arc<AtomicUsize>>,
 }
 
 impl<'ingest> IngestorBuilder<'ingest> {
-    pub fn with_structure(mut self, structure: Structure<'ingest>) -> Self {
+    pub fn with_structure(&mut self, structure: Structure<'ingest>) -> &mut Self {
         self.structure = Some(structure);
         self
     }
-    pub fn with_target<P: AsRef<Path>>(mut self, target: P) -> Self {
+    pub fn with_target<P: AsRef<Path>>(&mut self, target: P) -> &mut Self {
         self.target = Some(target.as_ref().to_path_buf());
         self
     }
@@ -48,29 +50,35 @@ impl<'ingest> IngestorBuilder<'ingest> {
         P: IntoIterator<Item = &'ingest PI>,
         PI: AsRef<Path> + std::hash::Hash + std::cmp::Eq + 'ingest,
     >(
-        mut self,
+        &mut self,
         sources: P,
-    ) -> Self {
+    ) -> &mut Self {
         self.sources = Some(sources.into_iter().map(|p| p.as_ref()).collect());
         self
     }
 
-    pub fn copy_xmp(mut self, copy_xmp: bool) -> Self {
+    pub fn progress(&mut self, progress: Arc<AtomicUsize>) -> &mut Self {
+        self.progress = Some(progress);
+        self
+    }
+
+    pub fn copy_xmp(&mut self, copy_xmp: bool) -> &mut Self {
         self.copy_xmp = Some(copy_xmp);
         self
     }
 
-    pub fn copy_jpg(mut self, copy_jpg: bool) -> Self {
+    pub fn copy_jpg(&mut self, copy_jpg: bool) -> &mut Self {
         self.copy_jpg = Some(copy_jpg);
         self
     }
 
-    pub fn backup<P: AsRef<Path>>(mut self, backup: P) -> Self {
+    pub fn backup<P: AsRef<Path>>(&mut self, backup: P) -> &mut Self {
         self.backup = Some(backup.as_ref().to_path_buf());
         self
     }
 
-    pub fn build(self) -> Result<Ingestor<'ingest>> {
+    pub fn build(&self) -> Result<Ingestor<'ingest>> {
+        let ingestor = self.to_owned();
         if let Self {
             structure: Some(structure),
             target: Some(target),
@@ -78,7 +86,7 @@ impl<'ingest> IngestorBuilder<'ingest> {
             filter: Some(filter),
             backup,
             ..
-        } = self
+        } = ingestor
         {
             Ok(Ingestor {
                 structure,
@@ -86,8 +94,9 @@ impl<'ingest> IngestorBuilder<'ingest> {
                 sources,
                 filter,
                 backup,
-                copy_xmp: self.copy_xmp.unwrap_or(true),
-                copy_jpg: self.copy_jpg.unwrap_or(true),
+                copy_xmp: ingestor.copy_xmp.unwrap_or(true),
+                copy_jpg: ingestor.copy_jpg.unwrap_or(true),
+                progress: ingestor.progress.unwrap_or_default(),
                 ..Default::default()
             })
         } else {
@@ -112,6 +121,7 @@ pub struct Ingestor<'ingest> {
     pub filter: Filter<'ingest>,
     pub copy_xmp: bool,
     pub copy_jpg: bool,
+    pub progress: Arc<AtomicUsize>,
     __jpegs: HashSet<PathBuf>,
 }
 
