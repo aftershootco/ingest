@@ -146,10 +146,10 @@ impl<'filter> Default for Filter<'filter> {
     }
 }
 
-#[derive(Debug, Clone, Default)]
-pub enum Structure<'st> {
+#[derive(Debug, Clone, Default, Copy)]
+pub enum Structure<'structure> {
     /// Rename the files according to the given pattern.
-    Rename(Rename<'st>),
+    Rename(Rename<'structure>),
     /// Preserve the names not the folder structure
     Preserve,
     /// Retain the folder structure
