@@ -251,9 +251,12 @@ pub(crate) fn exists_plus_one(path: impl AsRef<Path>) -> Result<PathBuf> {
     let mut count = 1;
     while path.exists() {
         path = path.with_file_name(format!(
-            "{}-{count}",
-            path.file_name()
+            "{}-{count}.{}",
+            path.file_stem()
                 .ok_or_else(|| Error::custom_error("File name not found"))?
+                .to_string_lossy(),
+            path.extension()
+                .ok_or_else(|| Error::custom_error("Extension not found"))?
                 .to_string_lossy()
         ));
         count += 1;
