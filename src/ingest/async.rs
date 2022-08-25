@@ -57,6 +57,7 @@ impl<'ingest> Ingestor<'ingest> {
         }
         .unwrap_or_default();
 
+        // TODO: futures::future::try_join_all
         for source in self.sources.clone().iter() {
             for entry in WalkDir::new(source).into_iter().flatten() {
                 self.map_entry(entry, &source, &mut rename).await?;
@@ -101,6 +102,7 @@ impl<'ingest> Ingestor<'ingest> {
         }
         .unwrap_or_default();
 
+        // TODO: futures::future::try_join_all
         for source in self.sources.clone().iter() {
             for entry in WalkDir::new(source).into_iter().flatten() {
                 self.map_entry(entry, &source, &mut rename).await?;
@@ -281,7 +283,7 @@ impl<'ingest> Ingestor<'ingest> {
         rename: &mut Rename<'ingest>,
     ) -> Result<()> {
         self.progress
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let path = entry.path();
         if self.filter.matches(path)? {
             match self.structure {
