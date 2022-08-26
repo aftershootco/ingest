@@ -62,7 +62,7 @@ impl<'ingest> Ingestor<'ingest> {
                 self.free_space()? < self.total_size()? * 2
             } else {
                 let total_size = self.total_size()?;
-                self.free_space()? < total_size && self.free_space_backup()? < total_size
+                self.free_space()? < total_size || self.free_space_backup()? < total_size
             }
         } else {
             self.free_space()? < self.total_size()?
