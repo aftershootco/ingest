@@ -56,16 +56,21 @@ impl<'ingest> Ingestor<'ingest> {
     }
 
     pub async fn fits(&self) -> Result<bool> {
+        self.fits_with(0).await
+    }
+
+    pub async fn fits_with(&self, size: u64) -> Result<bool> {
+        let total = self.total_size()?;
+        let free = self.free_space()?;
         Ok(if let Some(ref backup_dir) = self.backup {
-            fs::create_dir_all(backup_dir).await?;
-            if same_disk(&self.target, backup_dir)? {
-                self.free_space()? > self.total_size()? * 2
+            if same_disk(backup_dir, &self.target)? {
+                free + size > total * 2
             } else {
-                let total_size = self.total_size()?;
-                self.free_space()? > total_size && self.free_space_backup()? > total_size
+                let free_backup = self.free_space_backup()?;
+                free + size > total && free_backup + size > total
             }
         } else {
-            self.free_space()? > self.total_size()?
+            free + size > total
         })
     }
 
