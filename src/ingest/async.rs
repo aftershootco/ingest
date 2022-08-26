@@ -59,13 +59,13 @@ impl<'ingest> Ingestor<'ingest> {
         Ok(if let Some(ref backup_dir) = self.backup {
             fs::create_dir_all(backup_dir).await?;
             if same_disk(&self.target, backup_dir)? {
-                self.free_space()? < self.total_size()? * 2
+                self.free_space()? > self.total_size()? * 2
             } else {
                 let total_size = self.total_size()?;
-                self.free_space()? < total_size || self.free_space_backup()? < total_size
+                self.free_space()? > total_size && self.free_space_backup()? > total_size
             }
         } else {
-            self.free_space()? < self.total_size()?
+            self.free_space()? > self.total_size()?
         })
     }
 
