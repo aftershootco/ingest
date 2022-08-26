@@ -6,7 +6,7 @@ pub async fn main() -> anyhow::Result<()> {
     let input = args.next().ok_or_else(|| anyhow::anyhow!("no input"))?;
     let output = args.next().ok_or_else(|| anyhow::anyhow!("no output"))?;
     let rename = Rename {
-        name: Some("my-image".into()),
+        name: Some("my-image"),
         position: ingest::Position::Suffix,
         sequence: 5,
         zeroes: 5,

@@ -36,6 +36,16 @@ impl<'ingest> Ingestor<'ingest> {
         Ok(fs2::free_space(&self.target)?)
     }
 
+    /// Returns the total space available at the target folder
+    pub fn free_space_backup(&self) -> Result<u64> {
+        if let Some(ref backup) = self.backup {
+            std::fs::create_dir_all(backup)?;
+            Ok(fs2::free_space(backup)?)
+        } else {
+            Err(Error::custom_error("Backup directory not set"))
+        }
+    }
+
     /// Returns the total size of the files to be copied.
     pub fn total_size(&self) -> Result<u64> {
         Ok(self
@@ -45,14 +55,28 @@ impl<'ingest> Ingestor<'ingest> {
             .sum())
     }
 
+    pub async fn fits(&self) -> Result<bool> {
+        Ok(if let Some(ref backup_dir) = self.backup {
+            fs::create_dir_all(backup_dir).await?;
+            if same_disk(&self.target, backup_dir)? {
+                self.free_space()? < self.total_size()? * 2
+            } else {
+                let total_size = self.total_size()?;
+                self.free_space()? < total_size && self.free_space_backup()? < total_size
+            }
+        } else {
+            self.free_space()? < self.total_size()?
+        })
+    }
+
     /// Returns the number of files that were ingested.
     pub async fn ingest(&mut self) -> Result<()> {
-        fs::create_dir_all(&self.target).await?;
-        if self.free_space()? < self.total_size()? {
-            return Err(Error::custom_error("Not enough space"));
+        if !self.fits().await? {
+            return Err(Error::new(errors::ErrorKind::InsufficientSpace));
         }
-        let mut rename = match self.structure.clone() {
-            Structure::Rename(ref rename) => Some(rename.clone()),
+
+        let mut rename = match self.structure {
+            Structure::Rename(ref rename) => Some(*rename),
             _ => None,
         }
         .unwrap_or_default();
@@ -94,10 +118,10 @@ impl<'ingest> Ingestor<'ingest> {
         }
         fs::create_dir_all(&self.target).await?;
         if self.free_space()? < self.total_size()? {
-            return Err(Error::custom_error("Not enough space"));
+            return Err(Error::new(errors::ErrorKind::InsufficientSpace));
         }
-        let mut rename = match self.structure.clone() {
-            Structure::Rename(ref rename) => Some(rename.clone()),
+        let mut rename = match self.structure {
+            Structure::Rename(ref rename) => Some(*rename),
             _ => None,
         }
         .unwrap_or_default();

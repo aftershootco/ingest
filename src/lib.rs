@@ -261,5 +261,16 @@ pub(crate) fn exists_plus_one(path: impl AsRef<Path>) -> Result<PathBuf> {
         ));
         count += 1;
     }
-    Ok(path.to_owned())
+    Ok(path)
+}
+
+#[cfg(unix)]
+pub(crate) fn same_disk<P1: AsRef<Path>, P2: AsRef<Path>>(p1: P1, p2: P2) -> std::io::Result<bool> {
+    use std::os::unix::fs::MetadataExt;
+    Ok(p1.as_ref().metadata()?.dev() == p2.as_ref().metadata()?.dev())
+}
+#[cfg(windows)]
+pub(crate) fn same_disk<P1: AsRef<Path>, P2: AsRef<Path>>() -> std::io::Result<bool> {
+    Ok(p1.as_ref().canonicalize()?.compnents().next()
+        == p2.as_ref().canonicalize()?.compnents().next())
 }

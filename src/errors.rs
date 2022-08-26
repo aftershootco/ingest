@@ -15,12 +15,24 @@ impl std::fmt::Display for Error {
 }
 impl std::error::Error for Error {}
 
+impl Error {
+    #[track_caller]
+    pub fn new(e: ErrorKind) -> Self {
+        Error {
+            location: *Location::caller(),
+            kind: e,
+        }
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum ErrorKind {
     #[error("{0}")]
     IOError(#[from] std::io::Error),
     #[error("{0}")]
     StripPrefixError(#[from] std::path::StripPrefixError),
+    #[error("Not enough space to ingest")]
+    InsufficientSpace,
     #[error("{0}")]
     CustomError(String),
 }
