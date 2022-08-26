@@ -247,10 +247,11 @@ pub(crate) fn accompanying_jpeg(path: impl AsRef<Path>) -> Result<PathBuf> {
 }
 
 pub(crate) fn exists_plus_one(path: impl AsRef<Path>) -> Result<PathBuf> {
-    let mut path = path.as_ref().to_owned();
+    let original_path = path.as_ref().to_owned();
     let mut count = 1;
+    let mut path = original_path.clone();
     while path.exists() {
-        path = path.with_file_name(format!(
+        path = original_path.with_file_name(format!(
             "{}-{count}.{}",
             path.file_stem()
                 .ok_or_else(|| Error::custom_error("File name not found"))?
