@@ -55,11 +55,11 @@ impl<'ingest> Ingestor<'ingest> {
             .sum())
     }
 
-    pub async fn fits(&self) -> Result<bool> {
-        self.fits_with(0).await
+    pub fn fits(&self) -> Result<bool> {
+        self.fits_with(0)
     }
 
-    pub async fn fits_with(&self, size: u64) -> Result<bool> {
+    pub fn fits_with(&self, size: u64) -> Result<bool> {
         let total = self.total_size()?;
         let free = self.free_space()?;
         Ok(if let Some(ref backup_dir) = self.backup {
@@ -94,7 +94,7 @@ impl<'ingest> Ingestor<'ingest> {
 
     /// Returns the number of files that were ingested.
     pub async fn ingest(&mut self) -> Result<()> {
-        if !self.fits().await? {
+        if !self.fits()? {
             return Err(Error::new(errors::ErrorKind::InsufficientSpace));
         }
 
