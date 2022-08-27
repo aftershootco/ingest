@@ -74,6 +74,24 @@ impl<'ingest> Ingestor<'ingest> {
         })
     }
 
+    pub fn needs(&self) -> Result<crate::Needs> {
+        let free = self.free_space()?;
+        let total = self.total_size()?;
+        let backup = if let Some(ref backup) = self.backup {
+            Some(crate::BackupNeeds {
+                free: self.free_space_backup()?,
+                same_disk: same_disk(&self.target, backup)?,
+            })
+        } else {
+            None
+        };
+        Ok(crate::Needs {
+            total,
+            free,
+            backup,
+        })
+    }
+
     /// Returns the number of files that were ingested.
     pub async fn ingest(&mut self) -> Result<()> {
         if !self.fits().await? {

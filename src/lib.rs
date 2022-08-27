@@ -277,3 +277,14 @@ pub(crate) fn same_disk<P1: AsRef<Path>, P2: AsRef<Path>>() -> std::io::Result<b
     Ok(p1.as_ref().canonicalize()?.compnents().next()
         == p2.as_ref().canonicalize()?.compnents().next())
 }
+
+pub struct Needs {
+    pub total: u64,
+    pub free: u64,
+    pub backup: Option<BackupNeeds>,
+}
+
+pub struct BackupNeeds {
+    pub free: u64,
+    pub same_disk: bool,
+}
