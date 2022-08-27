@@ -273,7 +273,7 @@ pub(crate) fn same_disk<P1: AsRef<Path>, P2: AsRef<Path>>(p1: P1, p2: P2) -> std
     Ok(p1.as_ref().metadata()?.dev() == p2.as_ref().metadata()?.dev())
 }
 #[cfg(windows)]
-pub(crate) fn same_disk<P1: AsRef<Path>, P2: AsRef<Path>>() -> std::io::Result<bool> {
+pub(crate) fn same_disk<P1: AsRef<Path>, P2: AsRef<Path>>(p1: P1, p2: P2) -> std::io::Result<bool> {
     Ok(p1.as_ref().canonicalize()?.compnents().next()
         == p2.as_ref().canonicalize()?.compnents().next())
 }
