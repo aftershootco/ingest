@@ -347,8 +347,7 @@ impl<'ingest> Ingestor<'ingest> {
                     };
                     self.ingest_file_renamed(path, rename).await.ok()
                 }
-                // Structure::Preserve => self.ingest_file_preserve(path).ok(),
-                Structure::Preserve => todo!(),
+                Structure::Preserve => self.ingest_file_preserve(path).await.ok(),
             };
         }
         Ok(())
