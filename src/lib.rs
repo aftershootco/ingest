@@ -143,6 +143,23 @@ impl<'filter> Filter<'filter> {
             ignore_hidden: true,
         }
     }
+    fn raws() -> Self {
+        Filter {
+            extensions: Cow::Borrowed(RAW_EXTENSIONS.as_ref()),
+            min_size: 0,
+            max_size: std::u64::MAX,
+            ignore_hidden: true,
+        }
+    }
+
+    fn jpegs() -> Self {
+        Filter {
+            extensions: Cow::Borrowed(LOSSY_EXTENSIONS.as_ref()),
+            min_size: 0,
+            max_size: std::u64::MAX,
+            ignore_hidden: true,
+        }
+    }
 }
 
 impl<'filter> Default for Filter<'filter> {
