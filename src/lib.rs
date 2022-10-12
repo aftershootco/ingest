@@ -38,6 +38,10 @@ pub struct IngestorBuilder<'ingest> {
 }
 
 impl<'ingest> IngestorBuilder<'ingest> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn with_structure(&mut self, structure: Structure<'ingest>) -> &mut Self {
         self.structure = Some(structure);
         self
