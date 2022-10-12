@@ -57,6 +57,14 @@ impl<'ingest> IngestorBuilder<'ingest> {
         self
     }
 
+    pub fn with_filter<'filter: 'ingest>(
+        &'filter mut self,
+        filter: impl Into<Filter<'filter>>,
+    ) -> &mut Self {
+        self.filter = Some(filter.into());
+        self
+    }
+
     pub fn progress(&mut self, progress: Arc<AtomicUsize>) -> &mut Self {
         self.progress = Some(progress);
         self
@@ -134,7 +142,7 @@ pub struct Filter<'filter> {
 }
 
 impl<'filter> Filter<'filter> {
-    fn images() -> Self {
+    pub fn images() -> Self {
         let extensions = [RAW_EXTENSIONS.as_slice(), LOSSY_EXTENSIONS.as_slice()].concat();
         Filter {
             extensions: Cow::Owned(extensions),
@@ -143,7 +151,7 @@ impl<'filter> Filter<'filter> {
             ignore_hidden: true,
         }
     }
-    fn raws() -> Self {
+    pub fn raws() -> Self {
         Filter {
             extensions: Cow::Borrowed(RAW_EXTENSIONS.as_ref()),
             min_size: 0,
@@ -152,7 +160,7 @@ impl<'filter> Filter<'filter> {
         }
     }
 
-    fn jpegs() -> Self {
+    pub fn jpegs() -> Self {
         Filter {
             extensions: Cow::Borrowed(LOSSY_EXTENSIONS.as_ref()),
             min_size: 0,
