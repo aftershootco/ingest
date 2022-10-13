@@ -35,6 +35,7 @@ pub struct IngestorBuilder<'ingest> {
     pub copy_jpg: Option<bool>,
     pub ignore_hidden: Option<bool>,
     pub progress: Option<Arc<AtomicUsize>>,
+    pub depth: Option<usize>,
 }
 
 impl<'ingest> IngestorBuilder<'ingest> {
@@ -46,6 +47,12 @@ impl<'ingest> IngestorBuilder<'ingest> {
         self.structure = Some(structure);
         self
     }
+
+    pub fn with_depth(&mut self, depth: usize) -> &mut Self {
+        self.depth = Some(depth);
+        self
+    }
+
     pub fn with_target<P: AsRef<Path>>(&mut self, target: P) -> &mut Self {
         self.target = Some(target.as_ref().to_path_buf());
         self
@@ -109,6 +116,7 @@ impl<'ingest> IngestorBuilder<'ingest> {
                 copy_xmp: ingestor.copy_xmp.unwrap_or(true),
                 copy_jpg: ingestor.copy_jpg.unwrap_or(true),
                 progress: ingestor.progress.unwrap_or_default(),
+                depth: ingestor.depth.unwrap_or(usize::MAX),
                 ..Default::default()
             })
         } else {
@@ -134,6 +142,7 @@ pub struct Ingestor<'ingest> {
     pub copy_xmp: bool,
     pub copy_jpg: bool,
     pub progress: Arc<AtomicUsize>,
+    pub depth: usize,
     __jpegs: HashSet<PathBuf>,
 }
 

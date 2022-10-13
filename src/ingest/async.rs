@@ -106,7 +106,11 @@ impl<'ingest> Ingestor<'ingest> {
 
         // TODO: futures::future::try_join_all
         for source in self.sources.clone().iter() {
-            for entry in WalkDir::new(source).into_iter().flatten() {
+            for entry in WalkDir::new(source)
+                .max_depth(self.depth)
+                .into_iter()
+                .flatten()
+            {
                 self.map_entry(entry, &source, &mut rename).await?;
             }
         }
@@ -151,7 +155,11 @@ impl<'ingest> Ingestor<'ingest> {
 
         // TODO: futures::future::try_join_all
         for source in self.sources.clone().iter() {
-            for entry in WalkDir::new(source).into_iter().flatten() {
+            for entry in WalkDir::new(source)
+                .max_depth(self.depth)
+                .into_iter()
+                .flatten()
+            {
                 self.map_entry(entry, &source, &mut rename).await?;
             }
         }
@@ -244,6 +252,7 @@ impl<'ingest> Ingestor<'ingest> {
         for source in self.sources.iter() {
             files.extend(
                 WalkDir::new(source)
+                    .max_depth(self.depth)
                     .into_iter()
                     .flatten()
                     .filter_map(|entry| {
@@ -271,6 +280,7 @@ impl<'ingest> Ingestor<'ingest> {
             .fold(Vec::new(), |mut last, source| {
                 last.extend(
                     WalkDir::new(source)
+                        .max_depth(self.depth)
                         .into_iter()
                         .flatten()
                         .filter_map(|entry| {
