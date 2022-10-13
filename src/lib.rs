@@ -68,10 +68,7 @@ impl<'ingest> IngestorBuilder<'ingest> {
         self
     }
 
-    pub fn with_filter<'filter: 'ingest>(
-        &'filter mut self,
-        filter: impl Into<Filter<'filter>>,
-    ) -> &mut Self {
+    pub fn with_filter(&mut self, filter: impl Into<Filter<'ingest>>) -> &mut Self {
         self.filter = Some(filter.into());
         self
     }
