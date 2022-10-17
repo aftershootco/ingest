@@ -108,6 +108,7 @@ impl<'ingest> Ingestor<'ingest> {
         for source in self.sources.clone().iter() {
             for entry in WalkDir::new(source)
                 .max_depth(self.depth)
+                .sort_by_file_name()
                 .into_iter()
                 .flatten()
             {
@@ -157,6 +158,7 @@ impl<'ingest> Ingestor<'ingest> {
         for source in self.sources.clone().iter() {
             for entry in WalkDir::new(source)
                 .max_depth(self.depth)
+                .sort_by_file_name()
                 .into_iter()
                 .flatten()
             {
@@ -253,6 +255,7 @@ impl<'ingest> Ingestor<'ingest> {
             files.extend(
                 WalkDir::new(source)
                     .max_depth(self.depth)
+                    .sort_by_file_name()
                     .into_iter()
                     .flatten()
                     .filter_map(|entry| {
@@ -281,6 +284,7 @@ impl<'ingest> Ingestor<'ingest> {
                 last.extend(
                     WalkDir::new(source)
                         .max_depth(self.depth)
+                        .sort_by_file_name()
                         .into_iter()
                         .flatten()
                         .filter_map(|entry| {
