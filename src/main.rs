@@ -11,7 +11,8 @@ pub async fn main() -> anyhow::Result<()> {
         sequence: 1,
         zeroes: 5,
     };
-    let mut ingestor = ingest::IngestorBuilder::images()
+    let mut ingestor = ingest::IngestorBuilder::default()
+        .with_filter(ingest::Filter::default())
         .with_source([&input])
         .with_structure(ingest::Structure::Rename(rename))
         .with_target(output)

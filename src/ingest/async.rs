@@ -3,7 +3,7 @@ use tokio::fs;
 
 impl<'filter> Filter<'filter> {
     pub fn matches(&self, path: impl AsRef<Path>) -> Result<bool> {
-        if path.is_hidden() == self.ignore_hidden {
+        if self.ignore_hidden && path.is_hidden() {
             return Ok(false);
         }
 
@@ -16,12 +16,16 @@ impl<'filter> Filter<'filter> {
 
         let size = path.as_ref().metadata()?.len();
         if let Some(ext) = ext {
-            if self.extensions.contains(&ext) && size >= self.min_size && size <= self.max_size {
+            if (self.extensions.contains(&ext)
+                || self.extensions.is_empty()
+                || self.extensions.contains(&""))
+                && size >= self.min_size
+                && size <= self.max_size
+            {
                 return Ok(true);
             }
-        } else if (self.extensions.is_empty() || self.extensions.contains(&""))
-            && size >= self.min_size
-            && size <= self.max_size
+        } else if self.extensions.is_empty()
+            || self.extensions.contains(&"") && size >= self.min_size && size <= self.max_size
         {
             return Ok(true);
         }
