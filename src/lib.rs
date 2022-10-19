@@ -186,7 +186,7 @@ impl<'filter> Default for Filter<'filter> {
             extensions: Default::default(),
             min_size: 0,
             max_size: std::u64::MAX,
-            ignore_hidden: true,
+            ignore_hidden: false,
         }
     }
 }
