@@ -26,6 +26,12 @@ where
     T: AsRef<Path>,
 {
     fn is_hidden(&self) -> bool {
+        #[cfg(windows)]
+        use std::os::windows::fs::MetadataExt;
+        #[cfg(windows)]
+        return std::fs::metadata(self.as_ref())
+            .map(|m| m.file_attributes() & 0x02 != 0)
+            .unwrap_or_default();
         self.as_ref()
             .file_name()
             .and_then(OsStr::to_str)
