@@ -18,7 +18,7 @@ impl<'filter> Filter<'filter> {
             .map(OsStr::to_ascii_lowercase)
             .and_then(|ext| ext.into_string().ok());
         let ext = ext.as_deref();
-        let trash_ext = ["dat", "bat", "exe", "bin", "fir", "dmg", "msi", "sh", "lut", "mo", "lua", "sym", "rbf", "bmp"];
+        let trash_ext = ["xmp", "dat", "bat", "exe", "bin", "fir", "dmg", "msi", "sh", "lut", "mo", "lua", "sym", "rbf", "bmp"];
 
         let size = path.as_ref().metadata()?.len();
         if let Some(ext) = ext {
@@ -357,16 +357,6 @@ impl<'ingest> Ingestor<'ingest> {
         self.progress
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let path = entry.path();
-
-        // don't copy xmp files as they are already being copied with their raws
-        if path
-            .extension()
-            .map(OsStr::to_ascii_lowercase)
-            .and_then(|ext| ext.into_string().ok())
-            .map(|ext| matches!(ext.as_str(), "xmp"))
-            .unwrap_or_default(){
-                return Ok(());
-            }
 
         if self.filter.matches(path)? {
             match self.structure {
