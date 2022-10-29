@@ -6,6 +6,11 @@ impl<'filter> Filter<'filter> {
         if self.ignore_hidden && path.is_hidden() {
             return Ok(false);
         }
+        // let file_name = path
+        //     .as_ref()
+        //     .file_stem()
+        //     .map(OsStr::to_ascii_lowercase)
+        //     .and_then(|ext| ext.into_string().ok());
 
         let ext = path
             .as_ref()
@@ -13,6 +18,7 @@ impl<'filter> Filter<'filter> {
             .map(OsStr::to_ascii_lowercase)
             .and_then(|ext| ext.into_string().ok());
         let ext = ext.as_deref();
+        let trash_ext = ["dat", "bat", "exe", "bin", "fir", "dmg", "msi", "sh", "lut", "mo", "lua", "sym", "rbf", "bmp"];
 
         let size = path.as_ref().metadata()?.len();
         if let Some(ext) = ext {
@@ -21,6 +27,7 @@ impl<'filter> Filter<'filter> {
                 || self.extensions.contains(&""))
                 && size >= self.min_size
                 && size <= self.max_size
+                && !trash_ext.contains(&ext)
             {
                 return Ok(true);
             }
