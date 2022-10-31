@@ -18,7 +18,8 @@ impl<'filter> Filter<'filter> {
             .map(OsStr::to_ascii_lowercase)
             .and_then(|ext| ext.into_string().ok());
         let ext = ext.as_deref();
-        let trash_ext = ["xmp", "dat", "bat", "exe", "bin", "fir", "dmg", "msi", "sh", "lut", "mo", "lua", "sym", "rbf", "bmp"];
+        let trash_ext = ["xmp", "dat", "bat", "exe", "bin", "fir", "dmg", "msi", "sh", "lut", "mo", "lua", "sym", "rbf",
+            "txt", "rtf", "doc", "docx", "pdf", "ctg"];
 
         let size = path.as_ref().metadata()?.len();
         if let Some(ext) = ext {
