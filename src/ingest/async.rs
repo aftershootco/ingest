@@ -135,7 +135,7 @@ impl<'ingest> Ingestor<'ingest> {
             self.copy_xmp = false;
             self.copy_jpg = false;
             match self.structure {
-                Structure::Retain => {
+                Structure::Rename(_) => {
                     self.ingest_file_renamed(jpeg, &mut rename).await.ok();
                 }
                 _ => (),
@@ -185,7 +185,7 @@ impl<'ingest> Ingestor<'ingest> {
             self.copy_xmp = false;
             self.copy_jpg = false;
             match self.structure {
-                Structure::Retain => {
+                Structure::Rename(_) => {
                     self.ingest_file_renamed(jpeg, &mut rename).await.ok();
                 }
                 _ => (),
@@ -335,7 +335,7 @@ impl<'ingest> Ingestor<'ingest> {
             .await
             .ok();
         }
-        if !self.structure.is_retained() && self.copy_jpg {
+        if self.structure.is_renamed() && self.copy_jpg {
             if let Ok(path) = accompanying_jpeg(&input) {
                 if self.__jpegs.contains(&path) {
                     self.__jpegs.remove(&path);
