@@ -272,7 +272,7 @@ impl<'ingest> Ingestor<'ingest> {
                     .flatten()
                     .filter_map(|entry| {
                         let path = entry.path();
-                        if entry.file_type().is_file() && self.filter.matches(path).ok()? {
+                        if self.filter.matches(path).ok()? {
                             Some(path.to_path_buf())
                         } else {
                             None
