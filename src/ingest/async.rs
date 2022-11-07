@@ -346,6 +346,7 @@ impl<'ingest> Ingestor<'ingest> {
             }
         }
 
+        self.progress.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         Ok(fs::copy(input, output).await?)
     }
 
@@ -355,8 +356,7 @@ impl<'ingest> Ingestor<'ingest> {
         source: impl AsRef<Path>,
         rename: &mut Rename<'ingest>,
     ) -> Result<()> {
-        self.progress
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+
         let path = entry.path();
 
         if self.filter.matches(path)? {
