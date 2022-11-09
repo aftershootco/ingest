@@ -231,8 +231,13 @@ impl<'ingest> Ingestor<'ingest> {
         } else {
             self.target.join(path.as_ref().strip_prefix(source)?)
         };
-        fs::create_dir_all(target.parent().unwrap()).await?;
-        self.ingest_copy(&path, &target).await?;
+
+        if !self.cancel.load(Ordering::SeqCst) {
+            fs::create_dir_all(target.parent().unwrap()).await?;
+            self.ingest_copy(&path, &target).await?;
+        } else {
+            return Err(Error::custom_error("Ingesting cancelled"));
+        }
 
         Ok(())
     }
