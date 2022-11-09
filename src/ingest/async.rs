@@ -1,5 +1,7 @@
 use crate::*;
 use tokio::fs;
+use std::sync::atomic::Ordering;
+
 
 impl<'filter> Filter<'filter> {
     pub fn matches(&self, path: impl AsRef<Path>) -> Result<bool> {
@@ -141,6 +143,11 @@ impl<'ingest> Ingestor<'ingest> {
                 _ => (),
             };
         }
+
+        if self.cancel.load(Ordering::SeqCst) {
+            return Err(Error::custom_error("Ingesting cancelled"));
+        }
+
         self.copy_xmp = __copy_xmp;
         self.copy_jpg = __copy_jpg;
         self.backup().await?;
@@ -325,6 +332,11 @@ impl<'ingest> Ingestor<'ingest> {
         input: I,
         output: O,
     ) -> Result<u64> {
+
+        if self.cancel.load(Ordering::SeqCst) {
+            return Err(Error::custom_error("Ingesting cancelled"));
+        }
+
         let output = crate::exists_plus_one(output)?;
 
         if self.copy_xmp {

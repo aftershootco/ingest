@@ -1,5 +1,6 @@
 mod errors;
 mod traits;
+use std::sync::atomic::AtomicBool;
 use std::sync::{atomic::AtomicUsize, Arc};
 
 mod ingest;
@@ -36,6 +37,7 @@ pub struct IngestorBuilder<'ingest> {
     pub ignore_hidden: Option<bool>,
     pub progress: Option<Arc<AtomicUsize>>,
     pub depth: Option<usize>,
+    pub cancel: Option<Arc<AtomicBool>>
 }
 
 impl<'ingest> IngestorBuilder<'ingest> {
@@ -78,6 +80,11 @@ impl<'ingest> IngestorBuilder<'ingest> {
         self
     }
 
+    pub fn cancel(&mut self, cancel: Arc<AtomicBool>) -> &mut Self {
+        self.cancel = Some(cancel);
+        self
+    }
+
     pub fn copy_xmp(&mut self, copy_xmp: bool) -> &mut Self {
         self.copy_xmp = Some(copy_xmp);
         self
@@ -113,6 +120,7 @@ impl<'ingest> IngestorBuilder<'ingest> {
                 copy_xmp: ingestor.copy_xmp.unwrap_or(true),
                 copy_jpg: ingestor.copy_jpg.unwrap_or(true),
                 progress: ingestor.progress.unwrap_or_default(),
+                cancel: ingestor.cancel.unwrap_or_default(),
                 depth: ingestor.depth.unwrap_or(usize::MAX),
                 ..Default::default()
             })
@@ -140,6 +148,7 @@ pub struct Ingestor<'ingest> {
     pub copy_jpg: bool,
     pub progress: Arc<AtomicUsize>,
     pub depth: usize,
+    pub cancel: Arc<AtomicBool>,
     __jpegs: HashSet<PathBuf>,
 }
 
