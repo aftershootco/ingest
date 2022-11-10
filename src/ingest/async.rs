@@ -5,7 +5,7 @@ use std::sync::atomic::Ordering;
 pub const TRASH_EXT: [&str; 20] = ["xmp", "dat", "bat", "exe", "bin", "fir", "dmg", "msi", "sh", "lut", "mo", "lua", "sym", "rbf",
 "txt", "rtf", "doc", "docx", "pdf", "ctg"];
 
-pub const TRASH_FOLDERS: [&str; 1] = ["IndexerVolumeGuid"];
+pub const TRASH_FILENAMES: [&str; 1] = ["IndexerVolumeGuid"];
 
 
 impl<'filter> Filter<'filter> {
@@ -24,7 +24,7 @@ impl<'filter> Filter<'filter> {
             let file_name = file_name.as_deref();
 
             if let Some(file_name) = file_name {
-                if TRASH_FOLDERS.contains(&file_name){
+                if TRASH_FILENAMES.contains(&file_name){
                     return Ok(false)
                 }
             }
