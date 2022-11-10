@@ -2,17 +2,34 @@ use crate::*;
 use tokio::fs;
 use std::sync::atomic::Ordering;
 
+pub const TRASH_EXT: [&str; 20] = ["xmp", "dat", "bat", "exe", "bin", "fir", "dmg", "msi", "sh", "lut", "mo", "lua", "sym", "rbf",
+"txt", "rtf", "doc", "docx", "pdf", "ctg"];
+
+pub const TRASH_FOLDERS: [&str; 1] = ["IndexerVolumeGuid"];
+
 
 impl<'filter> Filter<'filter> {
     pub fn matches(&self, path: impl AsRef<Path>) -> Result<bool> {
         if self.ignore_hidden && path.is_hidden() {
             return Ok(false);
         }
-        // let file_name = path
-        //     .as_ref()
-        //     .file_stem()
-        //     .map(OsStr::to_ascii_lowercase)
-        //     .and_then(|ext| ext.into_string().ok());
+
+        {
+            // Ignore trash folders
+            let file_name = path
+                .as_ref()
+                .file_stem()
+                .map(OsStr::to_ascii_lowercase)
+                .and_then(|ext| ext.into_string().ok());
+            let file_name = file_name.as_deref();
+
+            if let Some(file_name) = file_name {
+                if TRASH_FOLDERS.contains(&file_name){
+                    return Ok(false)
+                }
+            }
+            
+        }
 
         let ext = path
             .as_ref()
@@ -20,8 +37,6 @@ impl<'filter> Filter<'filter> {
             .map(OsStr::to_ascii_lowercase)
             .and_then(|ext| ext.into_string().ok());
         let ext = ext.as_deref();
-        let trash_ext = ["xmp", "dat", "bat", "exe", "bin", "fir", "dmg", "msi", "sh", "lut", "mo", "lua", "sym", "rbf",
-            "txt", "rtf", "doc", "docx", "pdf", "ctg"];
 
         let size = path.as_ref().metadata()?.len();
         if let Some(ext) = ext {
@@ -30,7 +45,7 @@ impl<'filter> Filter<'filter> {
                 || self.extensions.contains(&""))
                 && size >= self.min_size
                 && size <= self.max_size
-                && !trash_ext.contains(&ext)
+                && !TRASH_EXT.contains(&ext)
             {
                 return Ok(true);
             }
