@@ -5,7 +5,8 @@ use std::sync::atomic::Ordering;
 pub const TRASH_EXT: [&str; 20] = ["xmp", "dat", "bat", "exe", "bin", "fir", "dmg", "msi", "sh", "lut", "mo", "lua", "sym", "rbf",
 "txt", "rtf", "doc", "docx", "pdf", "ctg"];
 
-pub const TRASH_FILENAMES: [&str; 1] = ["IndexerVolumeGuid"];
+pub const TRASH_FILES: [&str; 1] = ["indexervolumeguid"];
+pub const TRASH_FOLDERS: [&str; 1] = ["system volume information"];
 
 
 impl<'filter> Filter<'filter> {
@@ -24,7 +25,7 @@ impl<'filter> Filter<'filter> {
             let file_name = file_name.as_deref();
 
             if let Some(file_name) = file_name {
-                if TRASH_FILENAMES.contains(&file_name){
+                if TRASH_FILES.contains(&file_name) || TRASH_FOLDERS.contains(&file_name){
                     return Ok(false)
                 }
             }
@@ -132,12 +133,17 @@ impl<'ingest> Ingestor<'ingest> {
             _ => None,
         }
         .unwrap_or_default();
+        let filters = &self.filter.clone();
 
         // TODO: futures::future::try_join_all
         for source in self.sources.clone().iter() {
             for entry in WalkDir::new(source)
                 .max_depth(self.depth)
                 .sort_by_file_name()
+                .into_iter()
+                .filter_entry(|e| {
+                    filters.matches(e.path()).ok().unwrap_or(true)
+                })
                 .into_iter()
                 .flatten()
             {
@@ -187,12 +193,17 @@ impl<'ingest> Ingestor<'ingest> {
             _ => None,
         }
         .unwrap_or_default();
+        let filters = &self.filter.clone();
 
         // TODO: futures::future::try_join_all
         for source in self.sources.clone().iter() {
             for entry in WalkDir::new(source)
                 .max_depth(self.depth)
                 .sort_by_file_name()
+                .into_iter()
+                .filter_entry(|e| {
+                    filters.matches(e.path()).ok().unwrap_or(true)
+                })
                 .into_iter()
                 .flatten()
             {
@@ -391,24 +402,22 @@ impl<'ingest> Ingestor<'ingest> {
 
         let path = entry.path();
 
-        if self.filter.matches(path)? {
-            match self.structure {
-                Structure::Retain => self.ingest_file(source, path).await.ok(),
-                Structure::Rename(_) => {
-                    if path.is_jpeg() {
-                        let path = path.to_path_buf();
-                        if self.__jpegs.contains(&path) {
-                            self.__jpegs.remove(&path);
-                            return Ok(());
-                        } else {
-                            self.__jpegs.insert(path);
-                        }
-                    };
-                    self.ingest_file_renamed(path, rename).await.ok()
-                }
-                Structure::Preserve => self.ingest_file_preserve(path).await.ok(),
-            };
-        }
+        match self.structure {
+            Structure::Retain => self.ingest_file(source, path).await.ok(),
+            Structure::Rename(_) => {
+                if path.is_jpeg() {
+                    let path = path.to_path_buf();
+                    if self.__jpegs.contains(&path) {
+                        self.__jpegs.remove(&path);
+                        return Ok(());
+                    } else {
+                        self.__jpegs.insert(path);
+                    }
+                };
+                self.ingest_file_renamed(path, rename).await.ok()
+            }
+            Structure::Preserve => self.ingest_file_preserve(path).await.ok(),
+        };
         Ok(())
     }
 }
