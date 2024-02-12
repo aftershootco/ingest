@@ -158,7 +158,7 @@ impl<'ingest> Ingestor<'ingest> {
             self.copy_xmp = false;
             self.copy_jpg = false;
             match self.structure {
-                Structure::Rename(_) => {
+                Structure::Retain => {
                     self.ingest_file_renamed(jpeg, &mut rename).await.ok();
                 }
                 _ => (),
@@ -218,7 +218,7 @@ impl<'ingest> Ingestor<'ingest> {
             self.copy_xmp = false;
             self.copy_jpg = false;
             match self.structure {
-                Structure::Rename(_) => {
+                Structure::Retain => {
                     self.ingest_file_renamed(jpeg, &mut rename).await.ok();
                 }
                 _ => (),
